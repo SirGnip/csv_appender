@@ -1,16 +1,10 @@
 """
-handle empty or missing trg file:
-- no keys in set
-- write header row to new trg
-
-- column indexes are one-based indexes identifying the columns in the src file
-Look out for csv files with newline at the end...
+- Look out for csv files with newline at the end...
 
 - confirm that headers match? error if they don't
 - what if src contains data w/ identical keys? should the script only append one row?
     Or, should it be naive and just append them all?
 """
-
 import csv
 from pathlib import Path
 import datetime
@@ -22,6 +16,8 @@ CsvTableType = List[List]
 KeySetType = Set[Tuple]
 ColumnIdxsType = Tuple[int, ...]
 
+APPEND_TIMESTAMP_HEADER = "append_timestamp"
+
 @click.command()
 @click.argument("src_filename")
 @click.argument("trg_filename")
@@ -29,16 +25,25 @@ ColumnIdxsType = Tuple[int, ...]
 def appender(src_filename: str, trg_filename: str, key_column_idxs: ColumnIdxsType):
     print(src_filename, trg_filename, key_column_idxs)
 
-    # read target csv and generate Set of keys to determine uniqueness
-    trg_table = _read_csv(trg_filename)
-    trg_data = trg_table[1:]
-    print("Target file initial row count:", len(trg_data))
-    trg_keys = _make_trg_keys(trg_data, key_column_idxs)
-
     # read source csv, loop over it, and write any rows that don't have a matching key to target
     src_table = _read_csv(src_filename)
+    src_header = src_table[0]
     src_data = src_table[1:]
-    print("Source file row count:", len(trg_data))
+    print("Source file row count:", len(src_data))
+
+    # read target csv and generate Set of keys to determine uniqueness
+    trg_keys = set()
+    try:
+        trg_table = _read_csv(trg_filename)
+        trg_data = trg_table[1:]
+        print("Target file initial row count:", len(trg_data))
+        trg_keys = _make_trg_keys(trg_data, key_column_idxs)
+    except FileNotFoundError:
+        new_trg_header = [APPEND_TIMESTAMP_HEADER] + src_header
+        print(f"Target filename '{trg_filename}' not found. Creating empty file with headers: {new_trg_header}")
+        with Path(trg_filename).open("a", newline="") as out:
+            csv_writer = csv.writer(out, dialect="excel")
+            csv_writer.writerow(new_trg_header)
 
     # append rows from source csv that don't already have matching rows in the target csv
     appended = 0

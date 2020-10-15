@@ -1,3 +1,8 @@
+create master file if it doesn't exist (with header)
+compare headers and assert
+check the column indexes?
+log out what column names are used as keys
+
 # csv_appender
 
 A command line tool that appends data from one .csv file to another .csv while skipping items
