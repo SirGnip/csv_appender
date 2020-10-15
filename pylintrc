@@ -6,6 +6,7 @@ ignored-classes=
 
 # http://pylint.pycqa.org/en/latest/user_guide/message-control.html
 disable=missing-docstring,
+    too-many-locals, # Too many local variables
     #F,     # fatal
     #E,     # errors
     #E1101, # no-member
