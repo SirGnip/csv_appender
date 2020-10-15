@@ -1,10 +1,3 @@
-"""
-- Look out for csv files with newline at the end...
-
-- confirm that headers match? error if they don't
-- what if src contains data w/ identical keys? should the script only append one row?
-    Or, should it be naive and just append them all?
-"""
 import csv
 from pathlib import Path
 import datetime
@@ -30,20 +23,25 @@ def appender(src_filename: str, trg_filename: str, key_column_idxs: ColumnIdxsTy
     src_header = src_table[0]
     src_data = src_table[1:]
     print("Source file row count:", len(src_data))
+    if max(key_column_idxs) > len(src_header):
+        raise Exception(f"At least one key_column_idx ({key_column_idxs} is greater than the number of columns ({len(src_header)}) in the source file.")
 
     # read target csv and generate Set of keys to determine uniqueness
     trg_keys = set()
     try:
         trg_table = _read_csv(trg_filename)
+        trg_header = trg_table[0]
         trg_data = trg_table[1:]
         print("Target file initial row count:", len(trg_data))
         trg_keys = _make_trg_keys(trg_data, key_column_idxs)
     except FileNotFoundError:
-        new_trg_header = [APPEND_TIMESTAMP_HEADER] + src_header
-        print(f"Target filename '{trg_filename}' not found. Creating empty file with headers: {new_trg_header}")
+        trg_header = [APPEND_TIMESTAMP_HEADER] + src_header
+        print(f"Target filename '{trg_filename}' not found. Creating empty file with headers: {trg_header}")
         with Path(trg_filename).open("a", newline="") as out:
             csv_writer = csv.writer(out, dialect="excel")
-            csv_writer.writerow(new_trg_header)
+            csv_writer.writerow(trg_header)
+
+    _check_headers(src_header, trg_header)
 
     # append rows from source csv that don't already have matching rows in the target csv
     appended = 0
@@ -66,6 +64,12 @@ def appender(src_filename: str, trg_filename: str, key_column_idxs: ColumnIdxsTy
 
     # ending summary
     print(f"Done. Rows appended:{appended} skipped:{skipped}")
+
+
+def _check_headers(src_headers, trg_headers) -> bool:
+    core_trg_headers = trg_headers[1:]  # strip off the "append_timestamp" header
+    if tuple(src_headers) != tuple(core_trg_headers):
+        raise Exception(f"Headers of source file ({src_headers} do not match headers of target file ({core_trg_headers})")
 
 
 def _make_src_key(row: Sequence, key_column_idxs: ColumnIdxsType) -> Tuple:
