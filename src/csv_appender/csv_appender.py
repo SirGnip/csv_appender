@@ -47,7 +47,7 @@ def appender(src_filename: str, trg_filename: str, key_column_idxs: ColumnIdxsTy
     appended = 0
     skipped = 0
     now = datetime.datetime.now()
-    now_str = now.strftime('%d/%m/%Y %H:%M:%S')
+    now_str = now.strftime('%m/%d/%Y %H:%M:%S')
     print("Timestamp for appended rows:", now_str)
     with Path(trg_filename).open("a", newline="") as out:
         csv_writer = csv.writer(out, dialect="excel")
